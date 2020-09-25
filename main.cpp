@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <math.h>
 
-#define internal static
 
 
 static BITMAPINFO bitmapInfo;
@@ -15,13 +14,21 @@ static void* bitmapMemory;
 static int bitmapWidth;
 static int bitmapHeight;
 
-internal uint32_t rgb(int r, int g, int b) {
-    return r << 16 | g << 8 | b ;
+
+
+
+uint32_t rgb(int r, int g, int b) {
+    return r << 16 | g << 8 | b;
 }
+
+
+
+
+void fillRect(int x, int y, int width, int height, uint32_t color);
 
 void rect(int x, int y, int width, int height, uint32_t color);
 
-internal void resizeDIBSection(int width, int height) {
+ void resizeDIBSection(int width, int height) {
 
     if (bitmapMemory) {
         VirtualFree(bitmapMemory, 0, MEM_RELEASE);
@@ -45,9 +52,15 @@ internal void resizeDIBSection(int width, int height) {
     int bitmapMemorySize = (bitmapWidth * bitmapHeight) * bytesPerPixel;
     bitmapMemory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
-    uint32_t* pixel = (uint32_t*)bitmapMemory;
-    rect(20, 20, 20, 20, 0xffffff);
-   
+    fillRect(20, 20, 20, 100, 0xaf2f1f);
+    fillRect(40, 100, 40, 20, 0xaf2f1f);
+
+
+    fillRect(100, 20, 60, 100, 0x14ab12);
+    fillRect(120, 40, 20, 60, 0);
+    
+    fillRect(180, 20, 20, 100, 0x0912af);
+    fillRect(200, 100, 40, 20, 0x0912af);
 
 }
 
@@ -63,7 +76,16 @@ void rect(int x, int y, int width, int height, uint32_t color) {
     }
 }
 
-internal void win32updateWindow(HDC deviceContext, RECT *windowRect, int x, int y, int width, int height) {
+void fillRect(int x, int y, int width, int height, uint32_t color) {
+    uint32_t* pixel = (uint32_t*)bitmapMemory;
+    for (int a = 0; a < width; a++) {
+        for (int b = 0; b <= height; b++) {
+            pixel[a+x + (b+y) * bitmapWidth] = color;
+        }
+    }
+}
+
+ void win32updateWindow(HDC deviceContext, RECT *windowRect, int x, int y, int width, int height) {
 
     int windowWidth = windowRect->right - windowRect->left;
     int windowHeight = windowRect->bottom - windowRect->top;
