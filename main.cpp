@@ -7,8 +7,6 @@
 #include <stdint.h>
 #include <math.h>
 
-typedef uint8_t uint8;
-
 #define internal static
 
 
