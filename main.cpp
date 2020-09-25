@@ -13,22 +13,19 @@ static BITMAPINFO bitmapInfo;
 static void* bitmapMemory;
 static int bitmapWidth;
 static int bitmapHeight;
-
-
-
+static int bytesPerPixel = 4;
+static int bitmapMemorySize;
 
 uint32_t rgb(int r, int g, int b) {
     return r << 16 | g << 8 | b;
 }
 
-
-
-
-void fillRect(int x, int y, int width, int height, uint32_t color);
-
+void point(int x, int y, uint32_t color);
 void rect(int x, int y, int width, int height, uint32_t color);
+void fillRect(int x, int y, int width, int height, uint32_t color);
+void line(int x, int y, int x2, int y2, uint32_t color);
 
- void resizeDIBSection(int width, int height) {
+void resizeDIBSection(int width, int height) {
 
     if (bitmapMemory) {
         VirtualFree(bitmapMemory, 0, MEM_RELEASE);
@@ -48,42 +45,69 @@ void rect(int x, int y, int width, int height, uint32_t color);
     bitmapInfo.bmiHeader.biClrUsed = 0;
     bitmapInfo.bmiHeader.biClrImportant = 0;
 
-    int bytesPerPixel = 4;
-    int bitmapMemorySize = (bitmapWidth * bitmapHeight) * bytesPerPixel;
+    bitmapMemorySize = (bitmapWidth * bitmapHeight) * bytesPerPixel;
+
     bitmapMemory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
     fillRect(20, 20, 20, 100, 0xaf2f1f);
     fillRect(40, 100, 40, 20, 0xaf2f1f);
-
 
     fillRect(100, 20, 60, 100, 0x14ab12);
     fillRect(120, 40, 20, 60, 0);
     
     fillRect(180, 20, 20, 100, 0x0912af);
     fillRect(200, 100, 40, 20, 0x0912af);
+    fillRect(-200,-100, 2240, 2220, 0x0912af);
 
+    rect(320, 20, 620, 2220, 0xffffff);
+    line(100, 200, 300, 20, 0xffffff);
+}
+
+void point(int x, int y, uint32_t color) {
+    if (x < 0 || y < 0 || x >= bitmapWidth || y >= bitmapHeight) {
+        return;
+    }
+    uint32_t* pixel = (uint32_t*)bitmapMemory;
+    int index = x + y * bitmapWidth;
+    pixel[index] = color;
 }
 
 void rect(int x, int y, int width, int height, uint32_t color) {
-    uint32_t* pixel = (uint32_t*)bitmapMemory;
     for (int i = 0; i < width; i++) {
-        pixel[x + i + y * bitmapWidth] = color;
-        pixel[x + i + (y+height) * bitmapWidth] = color;
+        point(x + i, y, color);
+        point(x + i, y + height, color);
     }
     for (int i = 0; i <= height; i++) {
-        pixel[x + (y + i) * bitmapWidth] = color;
-        pixel[x+width + (y + i) * bitmapWidth] = color;
+        point(x, y + i, color);
+        point(x + width, y + i, color);
     }
 }
 
 void fillRect(int x, int y, int width, int height, uint32_t color) {
-    uint32_t* pixel = (uint32_t*)bitmapMemory;
     for (int a = 0; a < width; a++) {
         for (int b = 0; b <= height; b++) {
-            pixel[a+x + (b+y) * bitmapWidth] = color;
+            point(a + x, b + y, color);
         }
     }
 }
+
+void line(int x, int y, int x2, int y2, uint32_t color) {
+    double angle = atan2((double)y2 - (double)y, (double)x2 - (double)x);
+    double cosAngle = cos(angle);
+    double sinAngle = sin(angle);
+    double currentX = x;
+    double currentY = y;
+    int safeGuard = 0;
+    while (!(fabs(currentX - x2) < 2 && fabs(currentY - y2) < 2)) {
+        if (safeGuard++ > 1000) {
+            break;
+        }
+        point(round(currentX), round(currentY), color);
+        currentX += cosAngle;
+        currentY += sinAngle;
+    }
+}
+
 
  void win32updateWindow(HDC deviceContext, RECT *windowRect, int x, int y, int width, int height) {
 
@@ -137,6 +161,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     switch (uMsg) {
+        
         case WM_SIZE: {
             RECT clientRect;
             GetClientRect(hwnd, &clientRect);
