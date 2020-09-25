@@ -1,6 +1,7 @@
 #include <windows.h>
-#include <stdint.h>
 #include <math.h>
+
+typedef unsigned int uint32;
 
 static BITMAPINFO bitmapInfo;
 static void* bitmapMemory;
@@ -9,14 +10,14 @@ static int bitmapHeight;
 static int bytesPerPixel = 4;
 static int bitmapMemorySize;
 
-uint32_t rgb(int r, int g, int b) {
+uint32 rgb(int r, int g, int b) {
     return r << 16 | g << 8 | b;
 }
 
-void point(int x, int y, uint32_t color);
-void rect(int x, int y, int width, int height, uint32_t color);
-void fillRect(int x, int y, int width, int height, uint32_t color);
-void line(int x, int y, int x2, int y2, uint32_t color);
+void point(int x, int y, uint32 color);
+void rect(int x, int y, int width, int height, uint32 color);
+void fillRect(int x, int y, int width, int height, uint32 color);
+void line(int x, int y, int x2, int y2, uint32 color);
 
 void resizeDIBSection(int width, int height) {
 
@@ -55,16 +56,16 @@ void resizeDIBSection(int width, int height) {
     line(100, 200, 300, 20, 0xffffff);
 }
 
-void point(int x, int y, uint32_t color) {
+void point(int x, int y, uint32 color) {
     if (x < 0 || y < 0 || x >= bitmapWidth || y >= bitmapHeight) {
         return;
     }
-    uint32_t* pixel = (uint32_t*)bitmapMemory;
+    uint32* pixel = (uint32*)bitmapMemory;
     int index = x + y * bitmapWidth;
     pixel[index] = color;
 }
 
-void rect(int x, int y, int width, int height, uint32_t color) {
+void rect(int x, int y, int width, int height, uint32 color) {
     for (int i = 0; i < width; i++) {
         point(x + i, y, color);
         point(x + i, y + height, color);
@@ -75,7 +76,7 @@ void rect(int x, int y, int width, int height, uint32_t color) {
     }
 }
 
-void fillRect(int x, int y, int width, int height, uint32_t color) {
+void fillRect(int x, int y, int width, int height, uint32 color) {
     for (int a = 0; a < width; a++) {
         for (int b = 0; b <= height; b++) {
             point(a + x, b + y, color);
@@ -83,7 +84,7 @@ void fillRect(int x, int y, int width, int height, uint32_t color) {
     }
 }
 
-void line(int x, int y, int x2, int y2, uint32_t color) {
+void line(int x, int y, int x2, int y2, uint32 color) {
     double angle = atan2((double)y2 - (double)y, (double)x2 - (double)x);
     double cosAngle = cos(angle);
     double sinAngle = sin(angle);
