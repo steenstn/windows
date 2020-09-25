@@ -1,13 +1,6 @@
-#ifndef UNICODE
-#define UNICODE
-#endif
-
-
 #include <windows.h>
 #include <stdint.h>
 #include <math.h>
-
-
 
 static BITMAPINFO bitmapInfo;
 static void* bitmapMemory;
@@ -57,7 +50,6 @@ void resizeDIBSection(int width, int height) {
     
     fillRect(180, 20, 20, 100, 0x0912af);
     fillRect(200, 100, 40, 20, 0x0912af);
-    fillRect(-200,-100, 2240, 2220, 0x0912af);
 
     rect(320, 20, 620, 2220, 0xffffff);
     line(100, 200, 300, 20, 0xffffff);
@@ -126,7 +118,6 @@ void line(int x, int y, int x2, int y2, uint32_t color) {
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-bool mouseDown = false;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow) {
 
@@ -201,15 +192,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             GetClientRect(hwnd, &clientRect);
             win32updateWindow(deviceContent,&clientRect,  x, y, width, height);
             EndPaint(hwnd, &ps);
-
-
         }
-            return 0;
-        case WM_LBUTTONDOWN:
-            mouseDown = true;
-            return 0;
-        case WM_LBUTTONUP:
-            mouseDown = false;
             return 0;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
