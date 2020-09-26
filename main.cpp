@@ -13,6 +13,15 @@ struct Buffer {
     int memorySize;
 };
 
+struct KeyMap {
+    bool keyUp;
+    bool keyDown;
+    bool keyLeft;
+    bool keyRight;
+};
+
+KeyMap keymap;
+
 static Buffer buffer;
 
 uint32 rgb(int r, int g, int b) {
@@ -35,9 +44,9 @@ void lol(int x, int y) {
     fillRect(x + 200, y+100, 40, 20, 0x0912af);
 }
 
-void render(float offset) {
+void render(float x, float y) {
     fillRect(0, 0, 800, 800, 0);
-    lol(150+50*cos(offset), 100+50*sin(offset));
+    lol(x, y);
 
     rect(320, 20, 620, 2220, 0xffffff);
     line(100, 200, 300, 20, 0xffffff);
@@ -115,8 +124,6 @@ void line(int x, int y, int x2, int y2, uint32 color) {
 
 
  void copyBufferToScreen(HDC deviceContext, Buffer *buffer, int width, int height) {
-
-
     StretchDIBits(deviceContext,
         0, 0, width, height,
         0, 0, buffer->width, buffer->height,
@@ -129,32 +136,33 @@ void line(int x, int y, int x2, int y2, uint32 color) {
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+float x = 100;
+float y = 100;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow) {
 
     const wchar_t CLASS_NAME[] = L"lol";
 
-    WNDCLASS wc = {};
+    WNDCLASS windowClass = {};
 
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
+    windowClass.style = CS_HREDRAW | CS_VREDRAW;
+    windowClass.lpfnWndProc = WindowProc;
+    windowClass.hInstance = hInstance;
+    windowClass.lpszClassName = CLASS_NAME;
 
-    RegisterClass(&wc);
+    RegisterClass(&windowClass);
 
-    HWND hwnd = CreateWindowEx(0, CLASS_NAME, L"hells yeah", WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX,
+    HWND windowHandle = CreateWindowEx(0, CLASS_NAME, L"hells yeah", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT, 640, 400,
         NULL, NULL, hInstance, NULL);
 
-    if (hwnd == NULL) {
+    if (windowHandle == NULL) {
         return 0;
     }
 
-    ShowWindow(hwnd, nCmdShow);
 
     RECT clientRect;
-    GetClientRect(hwnd, &clientRect);
+    GetClientRect(windowHandle, &clientRect);
     int width = clientRect.right - clientRect.left;
     int height = clientRect.bottom - clientRect.top;
     allocateBuffer(&buffer, width, height);
@@ -162,7 +170,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
     bool running = true;
 
     float offset = 0;
-    float offsetSpeed = 0;
     float ticks = 0;
     while (running) {
         MSG msg;
@@ -174,21 +181,30 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
             TranslateMessage(&msg);
             DispatchMessageA(&msg);
         }
+        if (keymap.keyUp) {
+            y--;
+        }
+        if (keymap.keyDown) {
+            y++;
+        }
+        if (keymap.keyLeft) {
+            x--;
+        }
+        if (keymap.keyRight) {
+            x++;
+        }
 
+        render(x,y);
 
-        render(offset);
-
-        HDC deviceContent = GetDC(hwnd);
+        HDC deviceContent = GetDC(windowHandle);
 
         RECT clientRect;
-        GetClientRect(hwnd, &clientRect);
+        GetClientRect(windowHandle, &clientRect);
 
         int windowWidth = clientRect.right - clientRect.left;
         int windowHeight = clientRect.bottom - clientRect.top;
         copyBufferToScreen(deviceContent, &buffer, windowWidth, windowHeight);
         ticks++;
-        offsetSpeed = sin(ticks / 100);
-        offset+=offsetSpeed;
     }
     
     return 0;
@@ -206,8 +222,33 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (wParam == VK_ESCAPE) {
                 PostQuitMessage(0);
             }
+            if (wParam == VK_UP) {
+                keymap.keyUp = true;
+            }
+            if (wParam == VK_DOWN) {
+                keymap.keyDown = true;
+            }
+            if (wParam == VK_LEFT) {
+                keymap.keyLeft = true;
+            }
+            if (wParam == VK_RIGHT) {
+                keymap.keyRight = true;
+            }
             return 0;
-        
+        case WM_KEYUP:
+            if (wParam == VK_UP) {
+                keymap.keyUp = false;
+            }
+            if (wParam == VK_DOWN) {
+                keymap.keyDown = false;
+            }
+            if (wParam == VK_LEFT) {
+                keymap.keyLeft = false;
+            }
+            if (wParam == VK_RIGHT) {
+                keymap.keyRight = false;
+            }
+            return 0;
       
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
