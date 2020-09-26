@@ -162,6 +162,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
     bool running = true;
 
     float offset = 0;
+    float offsetSpeed = 0;
+    float ticks = 0;
     while (running) {
         MSG msg;
 
@@ -184,8 +186,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
         int windowWidth = clientRect.right - clientRect.left;
         int windowHeight = clientRect.bottom - clientRect.top;
         copyBufferToScreen(deviceContent, &buffer, windowWidth, windowHeight);
-     
-        offset+=0.4;
+        ticks++;
+        offsetSpeed = sin(ticks / 100);
+        offset+=offsetSpeed;
     }
     
     return 0;
@@ -195,12 +198,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
     switch (uMsg) {
         
-        case WM_SIZE: {
-        }
-            return 0;
-        case WM_CREATE:
-             
-            return 0;
         case WM_DESTROY:
 
             PostQuitMessage(0);
@@ -211,20 +208,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             }
             return 0;
         
-        case WM_PAINT:
-        {
-            PAINTSTRUCT     ps;
-            HDC deviceContent = BeginPaint(hwnd, &ps);
-
-            RECT clientRect;
-            GetClientRect(hwnd, &clientRect);
-
-            int windowWidth = clientRect.right - clientRect.left;
-            int windowHeight = clientRect.bottom - clientRect.top;
-            copyBufferToScreen(deviceContent, &buffer, windowWidth, windowHeight);
-            EndPaint(hwnd, &ps);
-        }
-        return 0;
+      
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
