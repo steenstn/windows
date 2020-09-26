@@ -28,28 +28,28 @@ uint32 rgb(int r, int g, int b) {
     return r << 16 | g << 8 | b;
 }
 
-void point(int x, int y, uint32 color);
-void rect(int x, int y, int width, int height, uint32 color);
-void fillRect(int x, int y, int width, int height, uint32 color);
-void line(int x, int y, int x2, int y2, uint32 color);
+void point(Buffer *buffer, int x, int y, uint32 color);
+void rect(Buffer* buffer, int x, int y, int width, int height, uint32 color);
+void fillRect(Buffer* buffer, int x, int y, int width, int height, uint32 color);
+void line(Buffer* buffer, int x, int y, int x2, int y2, uint32 color);
 
-void lol(int x, int y) {
-    fillRect(x+20, y + 20, 20, 100, 0xaf2f1f);
-    fillRect(x + 40, y + 100, 40, 20, 0xaf2f1f);
-
-    fillRect(x + 100, y + 20, 60, 100, 0x14ab12);
-    fillRect(x + 120, y + 40, 20, 60, 0);
-
-    fillRect(x + 180, y + 20, 20, 100, 0x0912af);
-    fillRect(x + 200, y+100, 40, 20, 0x0912af);
+void lol(Buffer* buffer, int x, int y) {
+    fillRect(buffer, x+20, y + 20, 20, 100, 0xaf2f1f);
+    fillRect(buffer, x + 40, y + 100, 40, 20, 0xaf2f1f);
+              
+    fillRect(buffer, x + 100, y + 20, 60, 100, 0x14ab12);
+    fillRect(buffer, x + 120, y + 40, 20, 60, 0);
+             
+    fillRect(buffer, x + 180, y + 20, 20, 100, 0x0912af);
+    fillRect(buffer, x + 200, y+100, 40, 20, 0x0912af);
 }
 
 void render(float x, float y) {
-    fillRect(0, 0, 800, 800, 0);
-    lol(x, y);
+    fillRect(&buffer, 0, 0, 800, 800, 0);
+    lol(&buffer, x, y);
 
-    rect(320, 20, 620, 2220, 0xffffff);
-    line(100, 200, 300, 20, 0xffffff);
+    rect(&buffer, 320, 20, 620, 2220, 0xffffff);
+    line(&buffer, 100, 200, 300, 20, 0xffffff);
 }
 
 void allocateBuffer(Buffer *buffer, int width, int height) {
@@ -77,35 +77,35 @@ void allocateBuffer(Buffer *buffer, int width, int height) {
     buffer->memory = VirtualAlloc(0, buffer->memorySize, MEM_COMMIT, PAGE_READWRITE);
 }
 
-void point(int x, int y, uint32 color) {
-    if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
+void point(Buffer* buffer, int x, int y, uint32 color) {
+    if (x < 0 || y < 0 || x >= buffer->width || y >= buffer->height) {
         return;
     }
-    uint32* pixel = (uint32*)buffer.memory;
-    int index = x + y * buffer.width;
+    uint32* pixel = (uint32*)buffer->memory;
+    int index = x + y * buffer->width;
     pixel[index] = color;
 }
 
-void rect(int x, int y, int width, int height, uint32 color) {
+void rect(Buffer* buffer, int x, int y, int width, int height, uint32 color) {
     for (int i = 0; i < width; i++) {
-        point(x + i, y, color);
-        point(x + i, y + height, color);
+        point(buffer, x + i, y, color);
+        point(buffer, x + i, y + height, color);
     }
     for (int i = 0; i <= height; i++) {
-        point(x, y + i, color);
-        point(x + width, y + i, color);
+        point(buffer, x, y + i, color);
+        point(buffer, x + width, y + i, color);
     }
 }
 
-void fillRect(int x, int y, int width, int height, uint32 color) {
+void fillRect(Buffer* buffer, int x, int y, int width, int height, uint32 color) {
     for (int a = 0; a < width; a++) {
         for (int b = 0; b <= height; b++) {
-            point(a + x, b + y, color);
+            point(buffer, a + x, b + y, color);
         }
     }
 }
 
-void line(int x, int y, int x2, int y2, uint32 color) {
+void line(Buffer* buffer, int x, int y, int x2, int y2, uint32 color) {
     double angle = atan2((double)y2 - (double)y, (double)x2 - (double)x);
     double cosAngle = cos(angle);
     double sinAngle = sin(angle);
@@ -116,7 +116,7 @@ void line(int x, int y, int x2, int y2, uint32 color) {
         if (safeGuard++ > 1000) {
             break;
         }
-        point(round(currentX), round(currentY), color);
+        point(buffer, round(currentX), round(currentY), color);
         currentX += cosAngle;
         currentY += sinAngle;
     }
