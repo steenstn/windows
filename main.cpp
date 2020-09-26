@@ -3,12 +3,17 @@
 
 typedef unsigned int uint32;
 
-static BITMAPINFO bitmapInfo;
-static void* bitmapMemory;
-static int bitmapWidth;
-static int bitmapHeight;
 static int bytesPerPixel = 4;
-static int bitmapMemorySize;
+
+struct Buffer {
+    BITMAPINFO bitmapInfo;
+    void* memory;
+    int width;
+    int height;
+    int memorySize;
+};
+
+static Buffer buffer;
 
 uint32 rgb(int r, int g, int b) {
     return r << 16 | g << 8 | b;
@@ -19,49 +24,56 @@ void rect(int x, int y, int width, int height, uint32 color);
 void fillRect(int x, int y, int width, int height, uint32 color);
 void line(int x, int y, int x2, int y2, uint32 color);
 
-void resizeDIBSection(int width, int height) {
+void lol(int x, int y) {
+    fillRect(x+20, y + 20, 20, 100, 0xaf2f1f);
+    fillRect(x + 40, y + 100, 40, 20, 0xaf2f1f);
 
-    if (bitmapMemory) {
-        VirtualFree(bitmapMemory, 0, MEM_RELEASE);
-    }
-    bitmapWidth = width;
-    bitmapHeight = height;
+    fillRect(x + 100, y + 20, 60, 100, 0x14ab12);
+    fillRect(x + 120, y + 40, 20, 60, 0);
 
-    bitmapInfo.bmiHeader.biSize = sizeof(bitmapInfo.bmiHeader);
-    bitmapInfo.bmiHeader.biWidth = bitmapWidth;
-    bitmapInfo.bmiHeader.biHeight = -bitmapHeight;
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biBitCount = 32;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
-    bitmapInfo.bmiHeader.biSizeImage = 0;
-    bitmapInfo.bmiHeader.biXPelsPerMeter = 0;
-    bitmapInfo.bmiHeader.biYPelsPerMeter = 0;
-    bitmapInfo.bmiHeader.biClrUsed = 0;
-    bitmapInfo.bmiHeader.biClrImportant = 0;
+    fillRect(x + 180, y + 20, 20, 100, 0x0912af);
+    fillRect(x + 200, y+100, 40, 20, 0x0912af);
+}
 
-    bitmapMemorySize = (bitmapWidth * bitmapHeight) * bytesPerPixel;
-
-    bitmapMemory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
-
-    fillRect(20, 20, 20, 100, 0xaf2f1f);
-    fillRect(40, 100, 40, 20, 0xaf2f1f);
-
-    fillRect(100, 20, 60, 100, 0x14ab12);
-    fillRect(120, 40, 20, 60, 0);
-    
-    fillRect(180, 20, 20, 100, 0x0912af);
-    fillRect(200, 100, 40, 20, 0x0912af);
+void render(float offset) {
+    fillRect(0, 0, 800, 800, 0);
+    lol(150+50*cos(offset), 100+50*sin(offset));
 
     rect(320, 20, 620, 2220, 0xffffff);
     line(100, 200, 300, 20, 0xffffff);
 }
 
+void allocateBuffer(Buffer *buffer, int width, int height) {
+
+    if (buffer->memory) {
+        VirtualFree(buffer->memory, 0, MEM_RELEASE);
+    }
+    buffer->width = width;
+    buffer->height = height;
+
+    buffer->bitmapInfo.bmiHeader.biSize = sizeof(buffer->bitmapInfo.bmiHeader);
+    buffer->bitmapInfo.bmiHeader.biWidth = buffer->width;
+    buffer->bitmapInfo.bmiHeader.biHeight = -buffer->height;
+    buffer->bitmapInfo.bmiHeader.biPlanes = 1;
+    buffer->bitmapInfo.bmiHeader.biBitCount = 32;
+    buffer->bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    buffer->bitmapInfo.bmiHeader.biSizeImage = 0;
+    buffer->bitmapInfo.bmiHeader.biXPelsPerMeter = 0;
+    buffer->bitmapInfo.bmiHeader.biYPelsPerMeter = 0;
+    buffer->bitmapInfo.bmiHeader.biClrUsed = 0;
+    buffer->bitmapInfo.bmiHeader.biClrImportant = 0;
+
+    buffer->memorySize = (buffer->width * buffer->height) * bytesPerPixel;
+
+    buffer->memory = VirtualAlloc(0, buffer->memorySize, MEM_COMMIT, PAGE_READWRITE);
+}
+
 void point(int x, int y, uint32 color) {
-    if (x < 0 || y < 0 || x >= bitmapWidth || y >= bitmapHeight) {
+    if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
         return;
     }
-    uint32* pixel = (uint32*)bitmapMemory;
-    int index = x + y * bitmapWidth;
+    uint32* pixel = (uint32*)buffer.memory;
+    int index = x + y * buffer.width;
     pixel[index] = color;
 }
 
@@ -102,16 +114,14 @@ void line(int x, int y, int x2, int y2, uint32 color) {
 }
 
 
- void win32updateWindow(HDC deviceContext, RECT *windowRect, int x, int y, int width, int height) {
+ void copyBufferToScreen(HDC deviceContext, Buffer *buffer, int width, int height) {
 
-    int windowWidth = windowRect->right - windowRect->left;
-    int windowHeight = windowRect->bottom - windowRect->top;
 
     StretchDIBits(deviceContext,
-        0, 0, bitmapWidth, bitmapHeight,
-        0, 0, windowWidth, windowHeight,
-        bitmapMemory,
-        &bitmapInfo,
+        0, 0, width, height,
+        0, 0, buffer->width, buffer->height,
+        buffer->memory,
+        &buffer->bitmapInfo,
         DIB_RGB_COLORS,
         SRCCOPY);
 }
@@ -126,6 +136,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 
     WNDCLASS wc = {};
 
+    wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
@@ -142,11 +153,41 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 
     ShowWindow(hwnd, nCmdShow);
 
-    MSG msg = {};
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    int width = clientRect.right - clientRect.left;
+    int height = clientRect.bottom - clientRect.top;
+    allocateBuffer(&buffer, width, height);
+
+    bool running = true;
+
+    float offset = 0;
+    while (running) {
+        MSG msg;
+
+        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                running = false;
+            }
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
+        }
+
+
+        render(offset);
+
+        HDC deviceContent = GetDC(hwnd);
+
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+
+        int windowWidth = clientRect.right - clientRect.left;
+        int windowHeight = clientRect.bottom - clientRect.top;
+        copyBufferToScreen(deviceContent, &buffer, windowWidth, windowHeight);
+     
+        offset+=0.4;
     }
+    
     return 0;
 }
 
@@ -155,12 +196,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     switch (uMsg) {
         
         case WM_SIZE: {
-            RECT clientRect;
-            GetClientRect(hwnd, &clientRect);
-            int width = clientRect.right - clientRect.left;
-            int height = clientRect.bottom - clientRect.top;
-            GetClientRect(hwnd, &clientRect);
-            resizeDIBSection(width, height);
         }
             return 0;
         case WM_CREATE:
@@ -179,22 +214,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_PAINT:
         {
             PAINTSTRUCT     ps;
-            HDC             hdc;
-            HDC             hdcMem;
-            HGDIOBJ         oldBitmap;
-
             HDC deviceContent = BeginPaint(hwnd, &ps);
-            int x = ps.rcPaint.left;
-            int y = ps.rcPaint.top;
-            int width = ps.rcPaint.right - ps.rcPaint.left;
-            int height = ps.rcPaint.bottom - ps.rcPaint.top;
 
             RECT clientRect;
             GetClientRect(hwnd, &clientRect);
-            win32updateWindow(deviceContent,&clientRect,  x, y, width, height);
+
+            int windowWidth = clientRect.right - clientRect.left;
+            int windowHeight = clientRect.bottom - clientRect.top;
+            copyBufferToScreen(deviceContent, &buffer, windowWidth, windowHeight);
             EndPaint(hwnd, &ps);
         }
-            return 0;
+        return 0;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
