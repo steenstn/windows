@@ -28,7 +28,7 @@ uint32 rgb(int r, int g, int b) {
     return r << 16 | g << 8 | b;
 }
 
-void point(Buffer *buffer, int x, int y, uint32 color);
+void pixel(Buffer *buffer, int x, int y, uint32 color);
 void rect(Buffer* buffer, int x, int y, int width, int height, uint32 color);
 void fillRect(Buffer* buffer, int x, int y, int width, int height, uint32 color);
 void line(Buffer* buffer, int x, int y, int x2, int y2, uint32 color);
@@ -77,7 +77,7 @@ void allocateBuffer(Buffer *buffer, int width, int height) {
     buffer->memory = VirtualAlloc(0, buffer->memorySize, MEM_COMMIT, PAGE_READWRITE);
 }
 
-void point(Buffer* buffer, int x, int y, uint32 color) {
+void pixel(Buffer* buffer, int x, int y, uint32 color) {
     if (x < 0 || y < 0 || x >= buffer->width || y >= buffer->height) {
         return;
     }
@@ -88,19 +88,19 @@ void point(Buffer* buffer, int x, int y, uint32 color) {
 
 void rect(Buffer* buffer, int x, int y, int width, int height, uint32 color) {
     for (int i = 0; i < width; i++) {
-        point(buffer, x + i, y, color);
-        point(buffer, x + i, y + height, color);
+        pixel(buffer, x + i, y, color);
+        pixel(buffer, x + i, y + height, color);
     }
     for (int i = 0; i <= height; i++) {
-        point(buffer, x, y + i, color);
-        point(buffer, x + width, y + i, color);
+        pixel(buffer, x, y + i, color);
+        pixel(buffer, x + width, y + i, color);
     }
 }
 
 void fillRect(Buffer* buffer, int x, int y, int width, int height, uint32 color) {
     for (int a = 0; a < width; a++) {
         for (int b = 0; b <= height; b++) {
-            point(buffer, a + x, b + y, color);
+            pixel(buffer, a + x, b + y, color);
         }
     }
 }
@@ -116,7 +116,7 @@ void line(Buffer* buffer, int x, int y, int x2, int y2, uint32 color) {
         if (safeGuard++ > 1000) {
             break;
         }
-        point(buffer, round(currentX), round(currentY), color);
+        pixel(buffer, round(currentX), round(currentY), color);
         currentX += cosAngle;
         currentY += sinAngle;
     }
